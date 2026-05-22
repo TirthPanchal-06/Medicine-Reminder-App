@@ -42,6 +42,7 @@ class ApiService {
     return {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer $token',
+      'bypass-tunnel-reminder': 'true',
     };
   }
 
@@ -110,6 +111,7 @@ class ApiService {
       var request = http.MultipartRequest(method, uri);
       
       request.headers['Authorization'] = 'Bearer $token';
+      request.headers['bypass-tunnel-reminder'] = 'true';
       request.fields.addAll(fields);
       
       if (kIsWeb && fileBytes != null && fileName != null) {
