@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="A new Flutter project.">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="medicine_reminder">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>medicine_reminder</title>
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+  <script>
+    let swRegistration = null;
+
+    if ('serviceWorker' in navigator && 'PushManager' in window) {
+      navigator.serviceWorker.register('sw.js')
+        .then(function(reg) {
+          console.log('Push Service Worker registered.', reg);
+          swRegistration = reg;
+        })
+        .catch(function(err) {
+          console.error('Service Worker registration failed.', err);
+        });
+    }
+
+    window.enableNotifications = async function(authToken) {
+      console.log('enableNotifications called from Flutter.');
+      if (!swRegistration) {
+        console.warn('Service worker registration not ready yet. Retrying in 1 second...');
+        await new Promise(r => setTimeout(r, 1000));
+        if (!swRegistration) {
+          console.error('Service worker still not ready.');
+          return false;
+        }
+      }
+
+      // 1. Request permission
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        console.warn('Notification permission denied.');
+        return false;
+      }
+
+      try {
+        // 2. Fetch VAPID key from backend
+        // Use standard dynamic port or fallback
+        const baseUrl = 'http://localhost:5000/api';
+
+        const keyResponse = await fetch(`${baseUrl}/push/vapid-key`);
+        const keyData = await keyResponse.json();
+        if (!keyData.success || !keyData.publicKey) {
+          throw new Error('Failed to retrieve VAPID public key');
+        }
+
+        // Convert base64 VAPID key to Uint8Array
+        const applicationServerKey = urlB64ToUint8Array(keyData.publicKey);
+
+        // 3. Subscribe to push
+        const subscription = await swRegistration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: applicationServerKey
+        });
+
+        console.log('Successfully subscribed to Web Push:', subscription);
+
+        // 4. Send subscription payload to backend
+        const subscribeResponse = await fetch(`${baseUrl}/push/subscribe`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: JSON.stringify(subscription)
+        });
+
+        const subscribeResult = await subscribeResponse.json();
+        console.log('Backend subscription registration response:', subscribeResult);
+        return subscribeResult.success;
+      } catch (err) {
+        console.error('Failed to enable web push notifications:', err);
+        return false;
+      }
+    };
+
+    // Helper function to convert base64 VAPID key
+    function urlB64ToUint8Array(base64String) {
+      const padding = '='.repeat((4 - base64String.length % 4) % 4);
+      const base64 = (base64String + padding)
+        .replace(/\-/g, '+')
+        .replace(/_/g, '/');
+
+      const rawData = window.atob(base64);
+      const outputArray = new Uint8Array(rawData.length);
+
+      for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+      }
+      return outputArray;
+    }
+  </script>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

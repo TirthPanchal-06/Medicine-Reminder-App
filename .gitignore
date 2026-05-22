@@ -1,0 +1,21 @@
+# Node backend
+backend/node_modules/
+backend/.env
+backend/backend.log
+backend/uploads/
+
+# Flutter frontend
+frontend/.dart_tool/
+frontend/.flutter-plugins-dependencies
+frontend/.pub/
+frontend/build/
+frontend/.idea/
+frontend/*.iml
+frontend/android/app/debug
+frontend/android/app/profile
+frontend/android/app/release
+
+# OS and common files
+.DS_Store
+*.log
+Thumbs.db

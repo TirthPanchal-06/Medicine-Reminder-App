@@ -1,0 +1,1 @@
+This folder is reserved for local static assets (e.g. icons, splash graphics).
