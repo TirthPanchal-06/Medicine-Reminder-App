@@ -18,8 +18,15 @@ class ApiService {
     }
   }
 
+  // Toggle between local development and live production
+  static const bool isProduction = false;
+  static const String productionUrl = 'https://your-medicine-reminder-backend.onrender.com/api';
+
   // Dynamic baseUrl to handle Android emulator loopback and localhost gracefully.
   static String get baseUrl {
+    if (isProduction) {
+      return productionUrl;
+    }
     if (kIsWeb) {
       return 'http://localhost:5000/api';
     } else if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
