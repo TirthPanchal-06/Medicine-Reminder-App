@@ -172,10 +172,14 @@ class HomeTimelinePage extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Hello, ${auth.user?.name ?? "User"} 👋',
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                Expanded(
+                  child: Text(
+                    'Hello, ${auth.user?.name ?? "User"} 👋',
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
+                const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
