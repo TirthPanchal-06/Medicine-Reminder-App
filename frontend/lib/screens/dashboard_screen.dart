@@ -180,26 +180,35 @@ class HomeTimelinePage extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: colorScheme.primary.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String?>(
-                      value: meds.selectedFamilyMemberId,
-                      hint: const Text('Select Profile'),
-                      items: [
-                        const DropdownMenuItem(value: null, child: Text('Me')),
-                        ...meds.familyMembers.map((member) {
-                          return DropdownMenuItem(
-                            value: member.id,
-                            child: Text(member.name),
-                          );
-                        }),
-                      ],
-                      onChanged: (id) => meds.selectFamilyMember(id),
+                SizedBox(
+                  width: 120,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String?>(
+                        isExpanded: true,
+                        isDense: true,
+                        padding: EdgeInsets.zero,
+                        value: meds.selectedFamilyMemberId,
+                        hint: const Text('Profile'),
+                        items: [
+                          const DropdownMenuItem(value: null, child: Text('Me')),
+                          ...meds.familyMembers.map((member) {
+                            return DropdownMenuItem(
+                              value: member.id,
+                              child: Text(
+                                member.name,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            );
+                          }),
+                        ],
+                        onChanged: (id) => meds.selectFamilyMember(id),
+                      ),
                     ),
                   ),
                 ),
