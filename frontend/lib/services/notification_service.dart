@@ -4,6 +4,7 @@ import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter_timezone/flutter_timezone.dart';
 import '../models/medicine_schedule_model.dart';
+import '../models/appointment_model.dart';
 
 class NotificationService {
   static final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
@@ -218,6 +219,73 @@ class NotificationService {
         await _localNotifications.cancel(baseHash + i + day * 1000);
       }
     }
+  }
+
+  static Future<void> scheduleAppointmentNotifications(AppointmentModel appointment) async {
+    if (kIsWeb) return;
+
+    // First cancel any existing notifications for this appointment to avoid duplicates
+    await cancelAppointmentNotifications(appointment.id);
+
+    final DateTime now = DateTime.now();
+    // If the appointment time has already passed, skip scheduling
+    if (appointment.dateTime.isBefore(now)) return;
+
+    final int baseHash = appointment.id.hashCode;
+
+    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      'appointment_reminder_channel',
+      'Doctor Appointment Reminders',
+      channelDescription: 'Alarms for scheduled doctor appointments',
+      importance: Importance.max,
+      priority: Priority.high,
+      playSound: true,
+    );
+
+    const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
+
+    const NotificationDetails platformDetails = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    // 1. Schedule notification at the exact appointment time
+    final tz.TZDateTime scheduledExact = tz.TZDateTime.from(appointment.dateTime, tz.local);
+    await _localNotifications.zonedSchedule(
+      baseHash,
+      'Doctor Appointment Now! 🩺',
+      'Your appointment with Dr. ${appointment.doctorName} (${appointment.specialty}) is scheduled now at ${appointment.venue}.',
+      scheduledExact,
+      platformDetails,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+    );
+
+    // 2. Schedule notification 1 hour before the appointment
+    final DateTime oneHourBefore = appointment.dateTime.subtract(const Duration(hours: 1));
+    if (oneHourBefore.isAfter(now)) {
+      final tz.TZDateTime scheduledOneHourBefore = tz.TZDateTime.from(oneHourBefore, tz.local);
+      await _localNotifications.zonedSchedule(
+        baseHash + 1,
+        'Upcoming Doctor Checkup 🩺',
+        'Reminder: You have an appointment with Dr. ${appointment.doctorName} in 1 hour at ${appointment.venue}.',
+        scheduledOneHourBefore,
+        platformDetails,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+      );
+    }
+  }
+
+  static Future<void> cancelAppointmentNotifications(String appointmentId) async {
+    if (kIsWeb) return;
+    final int baseHash = appointmentId.hashCode;
+    await _localNotifications.cancel(baseHash);
+    await _localNotifications.cancel(baseHash + 1);
   }
 
   static Future<void> cancelAllNotifications() async {

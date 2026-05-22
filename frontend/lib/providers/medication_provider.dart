@@ -164,6 +164,10 @@ class MedicationProvider with ChangeNotifier {
     final apptList = await _db.queryAll('appointments');
     final fetchedAppointments = apptList.map((j) => AppointmentModel.fromJson(j)).toList();
 
+    for (var appt in fetchedAppointments) {
+      await NotificationService.scheduleAppointmentNotifications(appt);
+    }
+
     // 5. Load SOS contacts
     final sosList = await _db.queryAll('sos_contacts');
     final fetchedSos = sosList.map((j) => SOSContactModel.fromJson(j)).toList();
@@ -598,6 +602,7 @@ class MedicationProvider with ChangeNotifier {
 
       for (var appt in fetched) {
         await _db.insert('appointments', appt.toSqlMap());
+        await NotificationService.scheduleAppointmentNotifications(appt);
       }
 
       _appointments = fetched;
@@ -629,6 +634,7 @@ class MedicationProvider with ChangeNotifier {
     _appointments.add(localAppt);
     notifyListeners();
     await _db.insert('appointments', localAppt.toSqlMap());
+    await NotificationService.scheduleAppointmentNotifications(localAppt);
 
     try {
       await ApiService.post('/appointments', payload);
@@ -638,6 +644,7 @@ class MedicationProvider with ChangeNotifier {
       await _db.addToSyncQueue('appointments', localId, 'create', payload);
     }
   }
+
 
   // --- 6. Emergency SOS Contacts CRUD ---
 
