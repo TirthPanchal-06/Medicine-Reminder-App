@@ -3,7 +3,7 @@ services:
     name: medicine-reminder-backend
     runtime: node
     rootDir: backend
-    buildCommand: npm install
+    buildCommand: npm install && mkdir -p uploads
     startCommand: npm start
     envVars:
       - key: NODE_ENV
