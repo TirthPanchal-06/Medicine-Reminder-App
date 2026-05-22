@@ -241,6 +241,18 @@ class DBHelper {
     return await db.delete(table, where: 'id = ?', whereArgs: [id]);
   }
 
+  Future<int> deleteSynced(String table) async {
+    if (kIsWeb) {
+      final list = await _getWebTable(table);
+      final initialLength = list.length;
+      list.removeWhere((item) => item['isSynced'] == 1 || item['isSynced'] == true || item['isSynced'] == null);
+      await _saveWebTable(table, list);
+      return initialLength - list.length;
+    }
+    final db = await database;
+    return await db.delete(table, where: 'isSynced = 1');
+  }
+
   // --- Offline Synchronization Queue Helpers ---
 
   Future<void> addToSyncQueue(String tableName, String rowId, String operationType, Map<String, dynamic> payload) async {
@@ -297,6 +309,67 @@ class DBHelper {
     }
     final db = await database;
     await db.delete('sync_queue', where: 'id = ?', whereArgs: [syncId]);
+  }
+
+  Future<void> updateSyncQueueRowId(String tableName, String oldRowId, String newRowId) async {
+    if (kIsWeb) {
+      final list = await _getWebTable('sync_queue');
+      bool modified = false;
+      for (var i = 0; i < list.length; i++) {
+        if (list[i]['tableName'] == tableName && list[i]['rowId'] == oldRowId) {
+          list[i]['rowId'] = newRowId;
+          try {
+            final Map<String, dynamic> payload = jsonDecode(list[i]['payload']);
+            if (payload['id'] == oldRowId) {
+              payload['id'] = newRowId;
+            }
+            if (payload['doseLogId'] == oldRowId) {
+              payload['doseLogId'] = newRowId;
+            }
+            list[i]['payload'] = jsonEncode(payload);
+          } catch (_) {}
+          modified = true;
+        }
+      }
+      if (modified) {
+        await _saveWebTable('sync_queue', list);
+      }
+      return;
+    }
+    final db = await database;
+    final list = await db.query('sync_queue', where: 'tableName = ? AND rowId = ?', whereArgs: [tableName, oldRowId]);
+    for (var row in list) {
+      final int syncId = row['id'] as int;
+      try {
+        final Map<String, dynamic> payload = jsonDecode(row['payload'] as String);
+        if (payload['id'] == oldRowId) {
+          payload['id'] = newRowId;
+        }
+        if (payload['doseLogId'] == oldRowId) {
+          payload['doseLogId'] = newRowId;
+        }
+        await db.update('sync_queue', {
+          'rowId': newRowId,
+          'payload': jsonEncode(payload),
+        }, where: 'id = ?', whereArgs: [syncId]);
+      } catch (_) {}
+    }
+  }
+
+  Future<void> updateRecordId(String table, String oldId, String newId) async {
+    if (kIsWeb) {
+      final list = await _getWebTable(table);
+      for (var i = 0; i < list.length; i++) {
+        if (list[i]['id'] == oldId) {
+          list[i]['id'] = newId;
+          list[i]['isSynced'] = 1;
+        }
+      }
+      await _saveWebTable(table, list);
+      return;
+    }
+    final db = await database;
+    await db.update(table, {'id': newId, 'isSynced': 1}, where: 'id = ?', whereArgs: [oldId]);
   }
 
   Future<void> clearDatabase() async {

@@ -19,8 +19,9 @@ class ApiService {
   }
 
   // Toggle between local development and live production
-  static const bool isProduction = true;
-  static const String productionUrl = 'https://eager-jokes-matter.loca.lt/api';
+  // TODO: Update productionUrl to your Render.com backend URL after deployment
+  static const bool isProduction = false; // Set to true after deploying backend
+  static const String productionUrl = 'https://medicine-reminder-backend.onrender.com/api';
 
   // Dynamic baseUrl to handle Android emulator loopback and localhost gracefully.
   static String get baseUrl {
@@ -122,7 +123,11 @@ class ApiService {
           contentType: _getMediaType(fileName),
         ));
       } else if (!kIsWeb && filePath.isNotEmpty && File(filePath).existsSync()) {
-        request.files.add(await http.MultipartFile.fromPath('prescription', filePath));
+        request.files.add(await http.MultipartFile.fromPath(
+          'prescription',
+          filePath,
+          contentType: _getMediaType(filePath),
+        ));
       }
       
       var streamedResponse = await request.send();
@@ -134,11 +139,23 @@ class ApiService {
   }
 
   static dynamic _processResponse(http.Response response) {
-    final body = jsonDecode(response.body);
+    if (response.body.isEmpty) {
+      throw Exception('Server returned an empty response. Status Code: ${response.statusCode}');
+    }
+    
+    dynamic body;
+    try {
+      body = jsonDecode(response.body);
+    } catch (e) {
+      throw Exception('Failed to parse server response. Status Code: ${response.statusCode}');
+    }
+    
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return body;
     } else {
-      throw Exception(body['message'] ?? 'Something went wrong. Status Code: ${response.statusCode}');
+      throw Exception(body is Map && body.containsKey('message')
+          ? body['message']
+          : 'Something went wrong. Status Code: ${response.statusCode}');
     }
   }
 }

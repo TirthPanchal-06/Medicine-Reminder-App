@@ -74,17 +74,17 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
   void _confirmDelete(String appointmentId) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Cancel Appointment?'),
         content: const Text('Are you sure you want to cancel this doctor checkup reminder? This will remove all local notifications.'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('No'),
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               final meds = Provider.of<MedicationProvider>(context, listen: false);
               try {
                 await meds.deleteAppointment(appointmentId);
@@ -121,11 +121,11 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
           title: const Text('Edit Appointment'),
           content: SizedBox(
-            width: MediaQuery.of(context).size.width * 0.9,
+            width: MediaQuery.of(dialogContext).size.width * 0.9,
             child: SingleChildScrollView(
               child: Form(
                 key: editFormKey,
@@ -157,7 +157,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                             label: Text(DateFormat('yyyy-MM-dd').format(selectedDate)),
                             onPressed: () async {
                               final date = await showDatePicker(
-                                context: context,
+                                context: dialogContext,
                                 initialDate: selectedDate,
                                 firstDate: DateTime.now().subtract(const Duration(days: 30)),
                                 lastDate: DateTime.now().add(const Duration(days: 365)),
@@ -172,10 +172,10 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                         Expanded(
                           child: OutlinedButton.icon(
                             icon: const Icon(Icons.access_time),
-                            label: Text(selectedTime.format(context)),
+                            label: Text(selectedTime.format(dialogContext)),
                             onPressed: () async {
                               final time = await showTimePicker(
-                                context: context,
+                                context: dialogContext,
                                 initialTime: selectedTime,
                               );
                               if (time != null) {
@@ -209,7 +209,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(dialogContext),
               child: const Text('Cancel'),
             ),
             ElevatedButton(
@@ -224,7 +224,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
                   selectedTime.minute,
                 );
 
-                Navigator.pop(context);
+                Navigator.pop(dialogContext);
 
                 final meds = Provider.of<MedicationProvider>(context, listen: false);
                 try {

@@ -91,30 +91,30 @@ class _FamilyScreenState extends State<FamilyScreen> {
     }
   }
 
-  void _confirmDelete(BuildContext context, MedicationProvider meds, FamilyMemberModel m) {
+  void _confirmDelete(BuildContext screenContext, MedicationProvider meds, FamilyMemberModel m) {
     showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
+      context: screenContext,
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Delete Family Member?'),
         content: Text('Are you sure you want to delete ${m.name}? This will also deactivate all linked medicine schedules.'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               try {
                 await meds.deleteFamilyMember(m.id);
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  ScaffoldMessenger.of(screenContext).showSnackBar(
                     const SnackBar(content: Text('Family Member removed successfully!'), backgroundColor: Colors.redAccent),
                   );
                 }
               } catch (e) {
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  ScaffoldMessenger.of(screenContext).showSnackBar(
                     SnackBar(content: Text('Failed to delete profile: $e'), backgroundColor: Colors.red),
                   );
                 }

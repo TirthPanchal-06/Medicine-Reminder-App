@@ -3,6 +3,8 @@ backend/node_modules/
 backend/.env
 backend/backend.log
 backend/uploads/
+backend/eng.traineddata
+backend/vapid.json
 
 # Flutter frontend
 frontend/.dart_tool/
@@ -19,3 +21,5 @@ frontend/android/app/release
 .DS_Store
 *.log
 Thumbs.db
+localtunnel.log
+pinggy.log

@@ -21,11 +21,11 @@ const storage = multer.diskStorage({
 
 // File filter (accept images and PDFs)
 const fileFilter = (req, file, cb) => {
-  const filetypes = /jpeg|jpg|png|pdf/;
-  const mimetype = filetypes.test(file.mimetype);
+  const filetypes = /jpeg|jpg|png|pdf/i;
   const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+  const mimetype = filetypes.test(file.mimetype) || file.mimetype === 'application/octet-stream';
 
-  if (mimetype && extname) {
+  if (extname && mimetype) {
     return cb(null, true);
   } else {
     cb(new Error('Only prescription images (JPEG/PNG) or PDFs are allowed!'));

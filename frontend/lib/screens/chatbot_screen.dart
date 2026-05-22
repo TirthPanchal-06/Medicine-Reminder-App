@@ -48,15 +48,17 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final List<String> suggestions = [
-      'What is normal blood pressure?',
-      'Common Metformin side effects',
+      'What is Paracetamol used for?',
+      'Tell me about Metformin',
+      'Uses of Amoxicillin',
+      'What is Omeprazole?',
+      'Tell me about Amlodipine',
       'What to do if I miss a dose?',
-      'Fasting glucose normal range',
     ];
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('AI Health Assistant', style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Outfit')),
+        title: const Text('AI Medicine Assistant 💊', style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Outfit')),
         actions: [
           IconButton(
             icon: const Icon(Icons.delete_sweep_outlined),
@@ -162,7 +164,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                   child: TextField(
                     controller: _messageController,
                     decoration: InputDecoration(
-                      hintText: 'Type your health inquiry here...',
+                      hintText: 'Ask about a medicine or health question...',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(20),
                         borderSide: BorderSide.none,

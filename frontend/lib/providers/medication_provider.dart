@@ -63,7 +63,14 @@ class MedicationProvider with ChangeNotifier {
         try {
           if (table == 'medicine_schedules') {
             if (op == 'create') {
-              await ApiService.post('/medicines', payload);
+              final res = await ApiService.post('/medicines', payload);
+              if (res != null && res['success'] == true && res['data'] != null) {
+                final String? newId = res['data']['_id'] ?? res['data']['id'];
+                if (newId != null && newId.isNotEmpty && newId != rowId) {
+                  await _db.updateRecordId('medicine_schedules', rowId, newId);
+                  await _db.updateSyncQueueRowId('medicine_schedules', rowId, newId);
+                }
+              }
             } else if (op == 'update') {
               await ApiService.put('/medicines/$rowId', payload);
             } else if (op == 'delete') {
@@ -75,11 +82,25 @@ class MedicationProvider with ChangeNotifier {
             }
           } else if (table == 'health_records') {
             if (op == 'create') {
-              await ApiService.post('/health-records', payload);
+              final res = await ApiService.post('/health-records', payload);
+              if (res != null && res['success'] == true && res['data'] != null) {
+                final String? newId = res['data']['_id'] ?? res['data']['id'];
+                if (newId != null && newId.isNotEmpty && newId != rowId) {
+                  await _db.updateRecordId('health_records', rowId, newId);
+                  await _db.updateSyncQueueRowId('health_records', rowId, newId);
+                }
+              }
             }
           } else if (table == 'family_members') {
             if (op == 'create') {
-              await ApiService.post('/family', payload);
+              final res = await ApiService.post('/family', payload);
+              if (res != null && res['success'] == true && res['data'] != null) {
+                final String? newId = res['data']['_id'] ?? res['data']['id'];
+                if (newId != null && newId.isNotEmpty && newId != rowId) {
+                  await _db.updateRecordId('family_members', rowId, newId);
+                  await _db.updateSyncQueueRowId('family_members', rowId, newId);
+                }
+              }
             } else if (op == 'update') {
               await ApiService.put('/family/$rowId', payload);
             } else if (op == 'delete') {
@@ -87,7 +108,14 @@ class MedicationProvider with ChangeNotifier {
             }
           } else if (table == 'appointments') {
             if (op == 'create') {
-              await ApiService.post('/appointments', payload);
+              final res = await ApiService.post('/appointments', payload);
+              if (res != null && res['success'] == true && res['data'] != null) {
+                final String? newId = res['data']['_id'] ?? res['data']['id'];
+                if (newId != null && newId.isNotEmpty && newId != rowId) {
+                  await _db.updateRecordId('appointments', rowId, newId);
+                  await _db.updateSyncQueueRowId('appointments', rowId, newId);
+                }
+              }
             } else if (op == 'update') {
               await ApiService.put('/appointments/$rowId', payload);
             } else if (op == 'delete') {
@@ -95,7 +123,14 @@ class MedicationProvider with ChangeNotifier {
             }
           } else if (table == 'sos_contacts') {
             if (op == 'create') {
-              await ApiService.post('/sos', payload);
+              final res = await ApiService.post('/sos', payload);
+              if (res != null && res['success'] == true && res['data'] != null) {
+                final String? newId = res['data']['_id'] ?? res['data']['id'];
+                if (newId != null && newId.isNotEmpty && newId != rowId) {
+                  await _db.updateRecordId('sos_contacts', rowId, newId);
+                  await _db.updateSyncQueueRowId('sos_contacts', rowId, newId);
+                }
+              }
             } else if (op == 'update') {
               await ApiService.put('/sos/$rowId', payload);
             } else if (op == 'delete') {
@@ -193,6 +228,9 @@ class MedicationProvider with ChangeNotifier {
     if (res['success'] == true) {
       final List data = res['data'];
       final fetched = data.map((json) => MedicineScheduleModel.fromJson(json)).toList();
+
+      // Clear old synced items to prevent primary key mismatch duplicates
+      await _db.deleteSynced('medicine_schedules');
 
       // Overwrite local DB values with remote
       for (var sched in fetched) {
@@ -390,6 +428,8 @@ class MedicationProvider with ChangeNotifier {
       final List data = res['data'];
       final fetched = data.map((json) => DoseLogModel.fromJson(json)).toList();
 
+      await _db.deleteSynced('dose_logs');
+
       for (var log in fetched) {
         await _db.insert('dose_logs', log.toSqlMap());
       }
@@ -469,6 +509,8 @@ class MedicationProvider with ChangeNotifier {
     if (res['success'] == true) {
       final List data = res['data'];
       final fetched = data.map((json) => FamilyMemberModel.fromJson(json)).toList();
+
+      await _db.deleteSynced('family_members');
 
       for (var fm in fetched) {
         await _db.insert('family_members', fm.toSqlMap());
@@ -600,6 +642,8 @@ class MedicationProvider with ChangeNotifier {
       final List data = res['data'];
       final fetched = data.map((json) => AppointmentModel.fromJson(json)).toList();
 
+      await _db.deleteSynced('appointments');
+
       for (var appt in fetched) {
         await _db.insert('appointments', appt.toSqlMap());
         await NotificationService.scheduleAppointmentNotifications(appt);
@@ -717,6 +761,8 @@ class MedicationProvider with ChangeNotifier {
     if (res['success'] == true) {
       final List data = res['data'];
       final fetched = data.map((json) => SOSContactModel.fromJson(json)).toList();
+
+      await _db.deleteSynced('sos_contacts');
 
       for (var contact in fetched) {
         await _db.insert('sos_contacts', contact.toSqlMap());
