@@ -19,8 +19,8 @@ class ApiService {
   }
 
   // Toggle between local development and live production
-  static const bool isProduction = false;
-  static const String productionUrl = 'https://your-medicine-reminder-backend.onrender.com/api';
+  static const bool isProduction = true;
+  static const String productionUrl = 'https://weak-dragons-hide.loca.lt/api';
 
   // Dynamic baseUrl to handle Android emulator loopback and localhost gracefully.
   static String get baseUrl {
