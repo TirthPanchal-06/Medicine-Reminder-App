@@ -20,7 +20,7 @@ class ApiService {
 
   // Toggle between local development and live production
   static const bool isProduction = true;
-  static const String productionUrl = 'https://sweet-lamps-wish.loca.lt/api';
+  static const String productionUrl = 'https://eager-jokes-matter.loca.lt/api';
 
   // Dynamic baseUrl to handle Android emulator loopback and localhost gracefully.
   static String get baseUrl {
