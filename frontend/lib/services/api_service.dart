@@ -20,8 +20,8 @@ class ApiService {
 
   // Toggle between local development and live production
   // TODO: Update productionUrl to your Render.com backend URL after deployment
-  static const bool isProduction = false; // Set to true after deploying backend
-  static const String productionUrl = 'https://medicine-reminder-backend.onrender.com/api';
+  static const bool isProduction = true; // Set to true after deploying backend
+  static const String productionUrl = 'https://medicine-reminder-app-4tfa.onrender.com/api';
 
   // Dynamic baseUrl to handle Android emulator loopback and localhost gracefully.
   static String get baseUrl {
