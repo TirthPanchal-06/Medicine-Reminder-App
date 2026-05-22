@@ -243,6 +243,14 @@ class MedicationProvider with ChangeNotifier {
     }
   }
 
+  String get _timezoneOffsetString {
+    final offset = DateTime.now().timeZoneOffset;
+    final hours = offset.inHours.abs().toString().padLeft(2, '0');
+    final minutes = (offset.inMinutes.abs() % 60).toString().padLeft(2, '0');
+    final sign = offset.isNegative ? '-' : '+';
+    return '$sign$hours:$minutes';
+  }
+
   Future<void> addSchedule({
     required String name,
     required String dosage,
@@ -269,6 +277,7 @@ class MedicationProvider with ChangeNotifier {
       'endDate': endDate?.toIso8601String() ?? '',
       'instructions': instructions,
       'familyMemberId': _selectedFamilyMemberId ?? '',
+      'timezone': _timezoneOffsetString,
     };
 
     // 1. Create a local schedule representation
@@ -345,6 +354,7 @@ class MedicationProvider with ChangeNotifier {
       'endDate': endDate?.toIso8601String() ?? '',
       'instructions': instructions,
       'familyMemberId': _selectedFamilyMemberId ?? '',
+      'timezone': _timezoneOffsetString,
     };
 
     // 1. Update locally in memory and cache

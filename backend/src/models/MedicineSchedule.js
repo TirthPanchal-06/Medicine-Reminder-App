@@ -37,6 +37,10 @@ const MedicineScheduleSchema = new mongoose.Schema({
     type: [String], // Array of 'HH:MM' strings e.g. ['08:00', '13:00', '20:00']
     required: true
   },
+  timezone: {
+    type: String,
+    default: '+05:30'
+  },
   startDate: {
     type: Date,
     required: true,

@@ -1,15 +1,39 @@
 const DoseLog = require('../models/DoseLog');
 const MedicineSchedule = require('../models/MedicineSchedule');
 
-// Helper to check if a schedule should run on a given date
+// Get local date string YYYY-MM-DD for a given Date and timezone offset string (e.g. '+05:30')
+const getLocalDateStrForOffset = (now, offsetStr) => {
+  const sign = offsetStr[0] === '-' ? -1 : 1;
+  const hours = parseInt(offsetStr.slice(1, 3));
+  const minutes = parseInt(offsetStr.slice(4, 6));
+  const offsetMs = sign * (hours * 60 + minutes) * 60 * 1000;
+  
+  const localTime = new Date(now.getTime() + offsetMs);
+  
+  const yyyy = localTime.getUTCFullYear();
+  const mm = (localTime.getUTCMonth() + 1).toString().padStart(2, '0');
+  const dd = localTime.getUTCDate().toString().padStart(2, '0');
+  
+  return `${yyyy}-${mm}-${dd}`;
+};
+
+// Helper to check if a schedule should run on a given date (timezone-aware)
 const shouldScheduleRunOnDate = (schedule, date) => {
-  const start = new Date(schedule.startDate);
-  start.setHours(0,0,0,0);
-  const target = new Date(date);
-  target.setHours(0,0,0,0);
+  const timezone = schedule.timezone || '+05:30';
+  
+  const startStr = getLocalDateStrForOffset(new Date(schedule.startDate), timezone);
+  const targetStr = getLocalDateStrForOffset(new Date(date), timezone);
+  
+  const start = new Date(`${startStr}T00:00:00Z`);
+  const target = new Date(`${targetStr}T00:00:00Z`);
 
   if (target < start) return false;
-  if (schedule.endDate && target > new Date(schedule.endDate)) return false;
+  
+  if (schedule.endDate) {
+    const endStr = getLocalDateStrForOffset(new Date(schedule.endDate), timezone);
+    const end = new Date(`${endStr}T00:00:00Z`);
+    if (target > end) return false;
+  }
 
   if (schedule.frequency === 'daily') {
     return true;
@@ -17,13 +41,13 @@ const shouldScheduleRunOnDate = (schedule, date) => {
 
   if (schedule.frequency === 'weekly' || schedule.frequency === 'specific_days') {
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const currentDayName = days[target.getDay()];
+    const currentDayName = days[target.getUTCDay()];
     return schedule.specificDays.includes(currentDayName);
   }
 
   if (schedule.frequency === 'interval') {
     const diffTime = Math.abs(target - start);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
     return diffDays % schedule.interval === 0;
   }
 
@@ -36,10 +60,6 @@ const shouldScheduleRunOnDate = (schedule, date) => {
 exports.getTodayDoses = async (req, res) => {
   const targetDateStr = req.query.date || new Date().toISOString();
   const targetDate = new Date(targetDateStr);
-  const startOfDay = new Date(targetDate);
-  startOfDay.setHours(0, 0, 0, 0);
-  const endOfDay = new Date(targetDate);
-  endOfDay.setHours(23, 59, 59, 999);
 
   const { familyMemberId } = req.query;
 
@@ -59,12 +79,12 @@ exports.getTodayDoses = async (req, res) => {
 
     // 3. For each running schedule, verify and build dose log entries
     for (const schedule of runningSchedules) {
+      const timezone = schedule.timezone || '+05:30';
+      const targetDatePart = getLocalDateStrForOffset(targetDate, timezone);
+
       for (const timeStr of schedule.times) {
-        const [hours, minutes] = timeStr.split(':').map(Number);
-        
-        // Build the specific due time for today
-        const dueTime = new Date(targetDate);
-        dueTime.setHours(hours, minutes, 0, 0);
+        // Build the specific due time for today in schedule's timezone
+        const dueTime = new Date(`${targetDatePart}T${timeStr}:00${timezone}`);
 
         // Try to find if a log already exists for this schedule + dueTime
         let log = await DoseLog.findOne({
@@ -82,7 +102,7 @@ exports.getTodayDoses = async (req, res) => {
             userId: req.user._id,
             familyMemberId: schedule.familyMemberId,
             dueTime: dueTime,
-            status: isPast ? 'missed' : 'missed', // Will display as upcoming/missed based on frontend takenTime or backend status
+            status: 'missed',
             takenTime: null
           });
           
@@ -159,9 +179,13 @@ exports.getComplianceStats = async (req, res) => {
   const { familyMemberId, days = 7 } = req.query;
   const daysLimit = parseInt(days);
 
-  const startDate = new Date();
+  // We want to calculate the start date relative to the user's timezone (defaulting to +05:30)
+  const defaultTimezone = '+05:30';
+  const todayStr = getLocalDateStrForOffset(new Date(), defaultTimezone);
+  const localToday = new Date(`${todayStr}T00:00:00${defaultTimezone}`);
+  
+  const startDate = new Date(localToday);
   startDate.setDate(startDate.getDate() - daysLimit);
-  startDate.setHours(0,0,0,0);
 
   try {
     const query = {
@@ -173,6 +197,7 @@ exports.getComplianceStats = async (req, res) => {
     }
 
     const logs = await DoseLog.find(query);
+    const schedules = await MedicineSchedule.find({ userId: req.user._id });
 
     const stats = {
       total: logs.length,
@@ -187,16 +212,18 @@ exports.getComplianceStats = async (req, res) => {
       stats.adherenceRate = Math.round((stats.taken / stats.total) * 100);
     }
 
-    // Populate daily trends
+    // Populate daily trends relative to the local today date in local timezone
     for (let i = 0; i < daysLimit; i++) {
-      const d = new Date();
+      const d = new Date(localToday);
       d.setDate(d.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0];
+      const dateStr = getLocalDateStrForOffset(d, defaultTimezone);
       stats.dailyTrend[dateStr] = { taken: 0, total: 0 };
     }
 
     logs.forEach(log => {
-      const dateStr = new Date(log.dueTime).toISOString().split('T')[0];
+      const schedule = schedules.find(s => s._id.toString() === log.scheduleId.toString());
+      const timezone = schedule ? (schedule.timezone || defaultTimezone) : defaultTimezone;
+      const dateStr = getLocalDateStrForOffset(new Date(log.dueTime), timezone);
       if (stats.dailyTrend[dateStr]) {
         stats.dailyTrend[dateStr].total += 1;
         if (log.status === 'taken') {

@@ -4,7 +4,7 @@ const MedicineSchedule = require('../models/MedicineSchedule');
 // @route   POST /api/medicines
 // @access  Private
 exports.createSchedule = async (req, res) => {
-  const { name, dosage, frequency, specificDays, interval, times, startDate, endDate, instructions, familyMemberId } = req.body;
+  const { name, dosage, frequency, specificDays, interval, times, startDate, endDate, instructions, familyMemberId, timezone } = req.body;
 
   try {
     const imageUrl = req.file ? `/uploads/${req.file.filename}` : req.body.imageUrl || '';
@@ -18,6 +18,7 @@ exports.createSchedule = async (req, res) => {
       specificDays: specificDays ? JSON.parse(specificDays) : [],
       interval: interval ? parseInt(interval) : 1,
       times: typeof times === 'string' ? JSON.parse(times) : times,
+      timezone: timezone || '+05:30',
       startDate: startDate || new Date(),
       endDate: endDate || null,
       instructions: instructions || '',
