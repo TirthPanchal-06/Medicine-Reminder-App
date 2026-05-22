@@ -645,6 +645,66 @@ class MedicationProvider with ChangeNotifier {
     }
   }
 
+  Future<void> updateAppointment({
+    required String id,
+    required String doctorName,
+    required String specialty,
+    required DateTime dateTime,
+    required String venue,
+    required String notes,
+  }) async {
+    final payload = {
+      'doctorName': doctorName,
+      'specialty': specialty,
+      'dateTime': dateTime.toIso8601String(),
+      'venue': venue,
+      'notes': notes
+    };
+
+    final index = _appointments.indexWhere((a) => a.id == id);
+    if (index != -1) {
+      final oldAppt = _appointments[index];
+      final updatedAppt = AppointmentModel(
+        id: id,
+        userId: oldAppt.userId,
+        doctorName: doctorName,
+        specialty: specialty,
+        dateTime: dateTime,
+        venue: venue,
+        notes: notes,
+        isSynced: false,
+      );
+      _appointments[index] = updatedAppt;
+      notifyListeners();
+      await _db.insert('appointments', updatedAppt.toSqlMap());
+      await NotificationService.scheduleAppointmentNotifications(updatedAppt);
+    }
+
+    try {
+      await ApiService.put('/appointments/$id', payload);
+      await _refreshAppointments();
+    } catch (e) {
+      print('Offline: Appointment update queued. $e');
+      await _db.addToSyncQueue('appointments', id, 'update', payload);
+    }
+  }
+
+  Future<void> deleteAppointment(String id) async {
+    _appointments.removeWhere((a) => a.id == id);
+    notifyListeners();
+
+    await _db.delete('appointments', id);
+    await NotificationService.cancelAppointmentNotifications(id);
+
+    try {
+      await ApiService.delete('/appointments/$id');
+      await _refreshAppointments();
+    } catch (e) {
+      print('Offline: Appointment deletion queued. $e');
+      await _db.addToSyncQueue('appointments', id, 'delete', {'id': id});
+    }
+  }
+
 
   // --- 6. Emergency SOS Contacts CRUD ---
 
